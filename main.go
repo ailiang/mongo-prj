@@ -3,28 +3,22 @@ package main
 import (
 	"MongoDB-Proj/Player"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
+	"reflect"
 )
 
-type Data struct {
-	s string
-	i int
-}
-
 func main() {
-	player := Player.NewPlayer("p1")
-	player.Save("field1", "value1")
-	player.Save("field2", "value2")
+	player := Player.NewPlayer("htzx", "player", "player@qq@001")
+	//player.Save(data.TablePlayerInfoKey, data.PlayerInfo{
+	//	PlayerId:   101,
+	//	PlayerName: "player101",
+	//})
+	//player.Save(data.TableReputationKey, data.ReputationData{map[int32]int32{1: 10, 2: 2, 3: 3}})
+	result := player.Get()
 
-	doc, err := bson.Marshal(&bson.D{{"value", "d"}, {"key", 1}})
-	if err == nil {
-		var ret Data
-		err = bson.Unmarshal(doc, &ret)
-		if err == nil {
-			fmt.Printf("%+v", ret)
-		} else {
-			fmt.Println(err)
-		}
-	}
+	fmt.Printf("result: %+v", result)
+	fmt.Printf("%s", reflect.TypeOf(result))
+	ret := make(chan bool)
+	<-ret
+	fmt.Println("donw")
 
 }

@@ -2,24 +2,23 @@ package db
 
 import (
 	"container/list"
-	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"hash/crc32"
-	"log"
 	"sync"
 )
 
-const (
-	DB_NAME    = "GAME"
-	TABLE_NAME = "PTB"
-)
+const DataSaveKey = "DataKey"
 
 type SaveData struct {
 	Key    string
 	Fields []string
-	Values []string
+	Values []interface{}
 
 	DelFields []string
+
+	DB         string
+	COLLECTION string
 }
 
 type SaveGoroutine struct {
@@ -60,7 +59,6 @@ func init() {
 	GetSaveManager().Init()
 }
 func (g *SaveGoroutine) run() {
-	log.Printf("goroutine run")
 	for {
 		data := g.popFront()
 		if data != nil {
@@ -69,13 +67,15 @@ func (g *SaveGoroutine) run() {
 	}
 }
 func (g *SaveGoroutine) save(data *SaveData) error {
-	cli := GetDbManager().Client
-	col := cli.Database(DB_NAME).Collection(TABLE_NAME)
-	filter := bson.D{{"key", data.Key}}
-
-	update := bson.D{{"key", data.Key}}
-	col.UpdateOne(context.TODO(), filter, update)
-	return nil
+	cli := GetDbManager().GetClient()
+	if cli == nil {
+		panic("cli nil")
+	}
+	col := cli.Database(data.DB).Collection(data.COLLECTION)
+	if col == nil {
+		panic("col nil")
+	}
+	return MongoUpdateOneWithColl(col, data.Key, data.Fields, data.Values)
 }
 
 func (g *SaveGoroutine) popFront() *SaveData {
@@ -84,6 +84,7 @@ func (g *SaveGoroutine) popFront() *SaveData {
 		g.cond.Wait()
 	}
 	front := g.dataList.Front()
+	g.dataList.Remove(front)
 	g.cond.L.Unlock()
 	if front == nil {
 		return nil
@@ -98,22 +99,24 @@ func (g *SaveGoroutine) popFront() *SaveData {
 func (g *SaveGoroutine) pushFront(data *SaveData) {
 	g.cond.L.Lock()
 	g.dataList.PushFront(data)
-	if g.dataList.Len() == 0 {
+	if g.dataList.Len() == 1 {
 		g.cond.Signal()
 	}
 	g.cond.L.Unlock()
 }
 
-func NewSaveData(key string) *SaveData {
+func NewSaveData(db string, collection string, key string) *SaveData {
 	return &SaveData{
-		Key:       key,
-		Fields:    nil,
-		Values:    nil,
-		DelFields: nil,
+		Key:        key,
+		Fields:     nil,
+		Values:     nil,
+		DelFields:  nil,
+		DB:         db,
+		COLLECTION: collection,
 	}
 }
 
-func (d *SaveData) Add(filed string, value string) error {
+func (d *SaveData) Add(filed string, value interface{}) error {
 	d.Fields = append(d.Fields, filed)
 	d.Values = append(d.Values, value)
 	return nil
@@ -123,4 +126,23 @@ func (d *SaveData) Save() {
 	m := GetSaveManager()
 	id := int(crc32.ChecksumIEEE([]byte(d.Key))) % m.gNum
 	m.goroutines[id].pushFront(d)
+}
+
+func (d *SaveData) Get() bson.D {
+	cli := GetDbManager().GetClient()
+	if cli == nil {
+		panic("cli nil")
+	}
+	col := cli.Database(d.DB).Collection(d.COLLECTION)
+	if col == nil {
+		panic("col nil")
+	}
+	r, err := MongoGetOneWithColl(col, d.Key)
+	if err != nil {
+		fmt.Println("get err:", err)
+		return nil
+	} else {
+		//fmt.Printf("get result: %+v", r)
+		return r
+	}
 }
