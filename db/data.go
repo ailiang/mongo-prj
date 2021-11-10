@@ -142,7 +142,26 @@ func (d *SaveData) Get() bson.D {
 		fmt.Println("get err:", err)
 		return nil
 	} else {
-		//fmt.Printf("get result: %+v", r)
+		fmt.Printf("get result: %+v", r)
+		return r
+	}
+}
+
+func (d *SaveData) GetRaw() bson.Raw {
+	cli := GetDbManager().GetClient()
+	if cli == nil {
+		panic("cli nil")
+	}
+	col := cli.Database(d.DB).Collection(d.COLLECTION)
+	if col == nil {
+		panic("col nil")
+	}
+	r, err := MongoGetOneRawWithColl(col, d.Key)
+	if err != nil {
+		fmt.Println("get err:", err)
+		return nil
+	} else {
+		fmt.Printf("get result: %+v \n", r)
 		return r
 	}
 }

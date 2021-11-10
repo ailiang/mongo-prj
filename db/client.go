@@ -40,3 +40,9 @@ func MongoGetOneWithColl(col *mongo.Collection, key string) (reply bson.D, err e
 	}
 	return
 }
+
+func MongoGetOneRawWithColl(col *mongo.Collection, key string) (r bson.Raw, err error) {
+	filterE := bson.E{DataSaveKey, key}
+	filterD := bson.D{filterE}
+	return col.FindOne(context.TODO(), filterD).DecodeBytes()
+}

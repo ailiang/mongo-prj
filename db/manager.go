@@ -14,7 +14,8 @@ var dbInstance *DbManager
 var dbInstanceOnce sync.Once
 
 type DbManager struct {
-	Client *mongo.Client
+	Client  *mongo.Client
+	DataMap map[string]interface{}
 }
 
 func NewClient() *mongo.Client {
