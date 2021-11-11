@@ -46,3 +46,15 @@ func MongoGetOneRawWithColl(col *mongo.Collection, key string) (r bson.Raw, err 
 	filterD := bson.D{filterE}
 	return col.FindOne(context.TODO(), filterD).DecodeBytes()
 }
+
+func MongoGetOneFiledRawWithColl(col *mongo.Collection, key string, filedName string, ret interface{}) error {
+	filterE := bson.E{DataSaveKey, key}
+	filterD := bson.D{filterE}
+	projection := bson.D{{filedName, 1}, {"_id", 0}}
+	opts := options.FindOne().SetProjection(projection)
+	if r, e := col.FindOne(context.TODO(), filterD, opts).DecodeBytes(); e == nil {
+		return r.Lookup(filedName).Unmarshal(ret)
+	} else {
+		return e
+	}
+}

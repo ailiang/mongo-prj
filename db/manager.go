@@ -23,11 +23,9 @@ func NewClient() *mongo.Client {
 	if err != nil {
 		panic(err)
 	}
-
 	if e := client.Ping(context.TODO(), readpref.Primary()); e != nil {
 		panic(e)
 	}
-
 	return client
 }
 

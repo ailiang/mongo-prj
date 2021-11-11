@@ -21,7 +21,3 @@ func (p *Player) Save(field string, value interface{}) {
 func (p *Player) Get() bson.D {
 	return p.Data.Get()
 }
-
-func (p *Player) GetRaw() bson.Raw {
-	return p.Data.GetRaw()
-}

@@ -1,7 +1,6 @@
 package data
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
 	"sync"
 )
 
@@ -27,10 +26,6 @@ func GetDataMgr() *DataMgr {
 		}
 	})
 	return inst
-}
-
-func (d *DataMgr) Unmarshal(r bson.Raw, key string, v interface{}) error {
-	return r.Lookup(key).Unmarshal(v)
 }
 
 type PlayerInfo struct {

@@ -15,20 +15,32 @@ func TestSave() {
 	player.Save(data.TableReputationKey, data.ReputationData{map[int32]int32{1: 10, 2: 2, 3: 3}})
 }
 
-func TestGet() {
+func TestGetRaw() {
 	player := Player.NewPlayer("htzx", "player", "player@qq@001")
-	r := player.GetRaw()
-	info := &data.ReputationData{}
-	if e := data.GetDataMgr().Unmarshal(r, data.TableReputationKey, info); e == nil {
-		fmt.Printf("%+v", info)
+	if r, err := player.Data.GetRaw(); err == nil {
+		info := &data.ReputationData{}
+		if e := r.Lookup(data.TableReputationKey).Unmarshal(info); e == nil {
+			fmt.Printf("TestGetRaw: %+v\n", info)
+		} else {
+			fmt.Printf("TestGetRaw: err:%s", e.Error())
+		}
+	}
+}
+
+func TestGetFieldRaw() {
+	player := Player.NewPlayer("htzx", "player", "player@qq@001")
+	info := &data.PlayerInfo{}
+	if err := player.Data.GetField(data.TablePlayerInfoKey, info); err == nil {
+		fmt.Printf("TestGetFieldRaw: %+v\n", info)
 	} else {
-		fmt.Printf("err:%s", e.Error())
+		fmt.Printf("TestGetFieldRaw: err:%s", err.Error())
 	}
 }
 
 func main() {
 	TestSave()
-	TestGet()
+	TestGetRaw()
+	TestGetFieldRaw()
 
 	ret := make(chan bool)
 	<-ret
