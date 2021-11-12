@@ -23,7 +23,7 @@ func MongoUpdateOneWithColl(col *mongo.Collection, key string, fields []string, 
 	ops := options.Update().SetUpsert(true)
 	result, err := col.UpdateOne(context.TODO(), filterD, bson.D{updateE}, ops)
 	if err == nil {
-		fmt.Printf("%+v", result)
+		fmt.Printf("%+v\n", result)
 	} else {
 		println(err.Error())
 	}
@@ -56,5 +56,14 @@ func MongoGetOneFiledRawWithColl(col *mongo.Collection, key string, filedName st
 		return r.Lookup(filedName).Unmarshal(ret)
 	} else {
 		return e
+	}
+}
+
+func MongoDelOneWithColl(col *mongo.Collection, key string) (int64, error) {
+	filter := bson.D{{DataSaveKey, key}}
+	if ret, err := col.DeleteOne(context.TODO(), filter); err == nil {
+		return ret.DeletedCount, err
+	} else {
+		return 0, err
 	}
 }

@@ -170,3 +170,15 @@ func (d *SaveData) GetField(fieldName string, ret interface{}) error {
 	}
 	return MongoGetOneFiledRawWithColl(col, d.Key, fieldName, ret)
 }
+
+func (d *SaveData) Delete() (int64, error) {
+	cli := GetDbManager().GetClient()
+	if cli == nil {
+		panic("cli nil")
+	}
+	col := cli.Database(d.DB).Collection(d.COLLECTION)
+	if col == nil {
+		panic("col nil")
+	}
+	return MongoDelOneWithColl(col, d.Key)
+}
