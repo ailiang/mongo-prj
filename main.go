@@ -3,11 +3,15 @@ package main
 import (
 	"MongoDB-Proj/Player"
 	"MongoDB-Proj/game/data"
+	"MongoDB-Proj/protoc"
 	"fmt"
+	"github.com/golang/protobuf/proto"
+	"go.mongodb.org/mongo-driver/bson"
+	"reflect"
 	"strconv"
 )
 
-func TestSave(i int) {
+func TestSave(i int, val interface{}) {
 	playerIndex := strconv.Itoa(i)
 	playerKey := "player@qq@" + playerIndex
 	playerName := "name_" + playerIndex
@@ -17,6 +21,7 @@ func TestSave(i int) {
 		PlayerName: playerName,
 	})
 	player.Save(data.TableReputationKey, data.ReputationData{map[int32]int32{1: 10, 2: 2, 3: 3}})
+	player.Save("binData", val)
 }
 
 func TestGetRaw(i int) {
@@ -64,18 +69,66 @@ func TestDel(i int) {
 	}
 }
 
-func main() {
-	for i := 0; i < 1; i++ {
-		TestSave(i)
-		TestGetRaw(i)
-		TestDel(i)
-		TestGetRaw(i)
+var (
+	tests = []struct {
+		name          string
+		pb            proto.Message
+		equivalentPbs []proto.Message
+	}{
+		{
+			name: "simple message",
+			pb: &protoc.SimpleMessage{
+				StringField: "foo",
+				Int32Field:  32525,
+				Int64Field:  1531541553141312315,
+				FloatField:  21541.3242,
+				DoubleField: 21535215136361617136.543858,
+				BoolField:   true,
+				EnumField:   protoc.Enum_VAL_2,
+			},
+			equivalentPbs: []proto.Message{
+				&protoc.RepeatedFieldMessage{
+					StringField: []string{"foo"},
+					Int32Field:  []int32{32525},
+					Int64Field:  []int64{1531541553141312315},
+					FloatField:  []float32{21541.3242},
+					DoubleField: []float64{21535215136361617136.543858},
+					BoolField:   []bool{true},
+					EnumField:   []protoc.Enum{protoc.Enum_VAL_2},
+				},
+			},
+		},
 	}
-	//go TestSave()
-	//go TestGetRaw()
-	//go TestGetFieldRaw()
+)
 
-	ret := make(chan bool)
-	<-ret
-	fmt.Println("donw")
+func testMarshalUnmarshal() {
+	rb := bson.NewRegistryBuilder()
+	rb.RegisterCodec(reflect.TypeOf((*proto.Message)(nil)).Elem(), protoc.NewProtobufCodec())
+	reg := rb.Build()
+
+	for _, testCase := range tests {
+		b, err := bson.MarshalWithRegistry(reg, testCase.pb)
+		if err != nil {
+			fmt.Printf("bson.MarshalWithRegistry error = %v \n", err)
+		}
+		fmt.Printf("%+v", b)
+
+		//TestSave(1, testCase.pb)
+		//for _, equivalentPb := range append(testCase.equivalentPbs, testCase.pb) {
+		//	out := reflect.New(reflect.TypeOf(equivalentPb).Elem()).Interface().(proto.Message)
+		//	if err = bson.UnmarshalWithRegistry(reg, b, &out); err != nil {
+		//		fmt.Printf("bson.UnmarshalWithRegistry error = %v\n", err)
+		//	}
+		//	if !proto.Equal(equivalentPb, out) {
+		//		fmt.Printf("failed: in=%#q, out=%#q\n", equivalentPb, out)
+		//	}
+		//}
+	}
+}
+
+func main() {
+
+	testMarshalUnmarshal()
+	<-make(chan interface{}, 0)
+	fmt.Println("down")
 }

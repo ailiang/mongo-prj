@@ -1,0 +1,3 @@
+protoc --go_out=. common.proto   example.proto
+pause...
+

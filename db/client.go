@@ -13,7 +13,6 @@ func MongoUpdateOneWithColl(col *mongo.Collection, key string, fields []string, 
 		panic("db save k!=v")
 	}
 	filterE := bson.E{DataSaveKey, key}
-	filterD := bson.D{filterE}
 	updateValueD := make([]bson.E, 0, len(fields)+1)
 	updateValueD = append(updateValueD, filterE)
 	for i := 0; i < len(fields); i++ {
@@ -21,7 +20,7 @@ func MongoUpdateOneWithColl(col *mongo.Collection, key string, fields []string, 
 	}
 	updateE := bson.E{"$set", updateValueD}
 	ops := options.Update().SetUpsert(true)
-	result, err := col.UpdateOne(context.TODO(), filterD, bson.D{updateE}, ops)
+	result, err := col.UpdateOne(context.TODO(), bson.D{filterE}, bson.D{updateE}, ops)
 	if err == nil {
 		fmt.Printf("%+v\n", result)
 	} else {

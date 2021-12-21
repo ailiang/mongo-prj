@@ -1,10 +1,14 @@
 package db
 
 import (
+	"MongoDB-Proj/protoc"
 	"container/list"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/protobuf/proto"
 	"hash/crc32"
+	"reflect"
 	"sync"
 )
 
@@ -71,7 +75,16 @@ func (g *SaveGoroutine) save(data *SaveData) error {
 	if cli == nil {
 		panic("cli nil")
 	}
-	col := cli.Database(data.DB).Collection(data.COLLECTION)
+
+	rb := bson.NewRegistryBuilder()
+	rb.RegisterCodec(reflect.TypeOf((*proto.Message)(nil)).Elem(), protoc.NewProtobufCodec())
+	reg := rb.Build()
+	col := cli.Database(data.DB).Collection(data.COLLECTION, &options.CollectionOptions{
+		ReadConcern:    nil,
+		WriteConcern:   nil,
+		ReadPreference: nil,
+		Registry:       reg,
+	})
 	if col == nil {
 		panic("col nil")
 	}
