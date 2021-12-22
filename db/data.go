@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/protobuf/proto"
 	"hash/crc32"
@@ -71,20 +72,7 @@ func (g *SaveGoroutine) run() {
 	}
 }
 func (g *SaveGoroutine) save(data *SaveData) error {
-	cli := GetDbManager().GetClient()
-	if cli == nil {
-		panic("cli nil")
-	}
-
-	rb := bson.NewRegistryBuilder()
-	rb.RegisterCodec(reflect.TypeOf((*proto.Message)(nil)).Elem(), protoc.NewProtobufCodec())
-	reg := rb.Build()
-	col := cli.Database(data.DB).Collection(data.COLLECTION, &options.CollectionOptions{
-		ReadConcern:    nil,
-		WriteConcern:   nil,
-		ReadPreference: nil,
-		Registry:       reg,
-	})
+	col := getCollection(data)
 	if col == nil {
 		panic("col nil")
 	}
@@ -142,11 +130,7 @@ func (d *SaveData) Save() {
 }
 
 func (d *SaveData) Get() bson.D {
-	cli := GetDbManager().GetClient()
-	if cli == nil {
-		panic("cli nil")
-	}
-	col := cli.Database(d.DB).Collection(d.COLLECTION)
+	col := getCollection(d)
 	if col == nil {
 		panic("col nil")
 	}
@@ -161,11 +145,7 @@ func (d *SaveData) Get() bson.D {
 }
 
 func (d *SaveData) GetRaw() (bson.Raw, error) {
-	cli := GetDbManager().GetClient()
-	if cli == nil {
-		panic("cli nil")
-	}
-	col := cli.Database(d.DB).Collection(d.COLLECTION)
+	col := getCollection(d)
 	if col == nil {
 		panic("col nil")
 	}
@@ -173,11 +153,7 @@ func (d *SaveData) GetRaw() (bson.Raw, error) {
 }
 
 func (d *SaveData) GetField(fieldName string, ret interface{}) error {
-	cli := GetDbManager().GetClient()
-	if cli == nil {
-		panic("cli nil")
-	}
-	col := cli.Database(d.DB).Collection(d.COLLECTION)
+	col := getCollection(d)
 	if col == nil {
 		panic("col nil")
 	}
@@ -185,13 +161,18 @@ func (d *SaveData) GetField(fieldName string, ret interface{}) error {
 }
 
 func (d *SaveData) Delete() (int64, error) {
-	cli := GetDbManager().GetClient()
-	if cli == nil {
-		panic("cli nil")
-	}
-	col := cli.Database(d.DB).Collection(d.COLLECTION)
+	col := getCollection(d)
 	if col == nil {
 		panic("col nil")
 	}
 	return MongoDelOneWithColl(col, d.Key)
+}
+
+func getCollection(data *SaveData) *mongo.Collection {
+	cli := GetDbManager().GetClient()
+	rb := bson.NewRegistryBuilder()
+	rb.RegisterCodec(reflect.TypeOf((*proto.Message)(nil)).Elem(), protoc.NewProtobufCodec())
+	//rb.RegisterCodec(reflect.TypeOf(&protoc.SimpleMessage{}), protoc.NewProtobufCodec())
+	reg := rb.Build()
+	return cli.Database(data.DB).Collection(data.COLLECTION, &options.CollectionOptions{Registry: reg})
 }
